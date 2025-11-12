@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "563722881205",
+    "project_id": "mta-water-delivery-8697f",
+    "storage_bucket": "mta-water-delivery-8697f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:563722881205:android:21ed4298bb00ab1aebd6fc",
+        "android_client_info": {
+          "package_name": "com.example.mta_water_delivery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgW4JFdN_SgtTRt_cNbqxv-GbWJEQNRCk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
