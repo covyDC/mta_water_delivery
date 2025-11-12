@@ -1,3 +1,4 @@
+import 'login.dart'; // <-- Add this line
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart'; // <-- Add this import
 import 'firebase_options.dart'; // <-- Add this if you used FlutterFire CLI
@@ -25,7 +26,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const LoginPage(),
     );
   }
 }

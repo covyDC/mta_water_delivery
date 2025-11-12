@@ -12,7 +12,20 @@
           "package_name": "com.example.mta_water_delivery"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "563722881205-mc4loc3i34thn7vuoto36kuuo19is461.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mta_water_delivery",
+            "certificate_hash": "f64c3659da64bfcccbf6f0c3d85e16fc03c09553"
+          }
+        },
+        {
+          "client_id": "563722881205-4mqit4fmra9nodc4e18r4721fefvh141.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBgW4JFdN_SgtTRt_cNbqxv-GbWJEQNRCk"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "563722881205-4mqit4fmra9nodc4e18r4721fefvh141.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "563722881205-6kfj4udcuei6f40j5dvraabqtosl4r38.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.mtaWaterDelivery"
+              }
+            }
+          ]
         }
       }
     }
