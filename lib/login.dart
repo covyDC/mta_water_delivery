@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import 'main.dart'; // Home screen
-import 'register.dart'; // Register page
+import 'main.dart';        // Home screen after login
+import 'register.dart';    // Registration page
+import 'admin_login.dart'; // Admin login page
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -37,7 +38,6 @@ class _LoginPageState extends State<LoginPage> {
       final googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
-        if (!mounted) return;
         setState(() => _isLoading = false);
         return;
       }
@@ -141,9 +141,6 @@ class _LoginPageState extends State<LoginPage> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your email';
                       }
-                      if (!value.contains('@')) {
-                        return 'Enter a valid email';
-                      }
                       return null;
                     },
                   ),
@@ -163,8 +160,8 @@ class _LoginPageState extends State<LoginPage> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';
                       }
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
+                      if (value.length < 4) {
+                        return 'Password must be at least 4 characters';
                       }
                       return null;
                     },
@@ -186,7 +183,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                   const SizedBox(height: 12),
 
-                  // Navigate to Register
+                  // Register Button (➡ Goes to register.dart)
                   TextButton(
                     onPressed: () {
                       Navigator.push(
@@ -216,6 +213,26 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       onPressed: _signInWithGoogle,
                     ),
+                  const SizedBox(height: 12),
+
+                  // Admin Login Button (➡ Goes to admin_login.dart)
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.admin_panel_settings),
+                    label: const Text('Admin Login'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black87,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminLoginPage(),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
