@@ -57,6 +57,7 @@ class _SignaturePadState extends State<SignaturePad> {
         widget.onSignatureSaved(pngBytes.buffer.asUint8List());
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving signature: $e')),
       );
@@ -173,8 +174,6 @@ class SignaturePainter extends CustomPainter {
 
 /// Painter controller for signature management
 class PainterController {
-  final ui.PictureRecorder _recorder = ui.PictureRecorder();
-
   Future<ui.Image> renderImage() async {
     // This is a placeholder - in production, you'd use flutter_signature_pad package
     throw UnimplementedError('Use flutter_signature_pad package for full implementation');

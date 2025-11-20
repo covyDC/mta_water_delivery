@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mta_water_delivery/screens/dashboards/customer_dashboard.dart';
 import 'package:mta_water_delivery/screens/dashboards/driver_dashboard.dart';
@@ -48,21 +49,40 @@ class _LoginPageState extends State<LoginPage> {
       if (!canAccess) {
         await FirebaseAuth.instance.signOut();
         if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${finalRole.name} users cannot access this platform')),
         );
         return;
       }
 
-      if (!mounted) return;
+      if (!mounted || !context.mounted) return;
 
       // Route to appropriate dashboard
-      final dashboard = switch (finalRole) {
-        UserRole.customer => const CustomerDashboard(),
-        UserRole.driver => const DriverDashboardPage(staff: {}),
-        UserRole.staff => const StaffDashboardPage(staff: {}),
-        UserRole.admin => const AdminDashboardPage(),
-      };
+      Widget dashboard;
+      
+      if (finalRole == UserRole.driver || finalRole == UserRole.staff) {
+        // Fetch staff data for driver/staff dashboards
+        final staffDoc = await FirebaseFirestore.instance
+            .collection('staff')
+            .doc(user.uid)
+            .get();
+        
+        final staffData = staffDoc.exists ? staffDoc.data() ?? {} : {};
+        
+        if (finalRole == UserRole.driver) {
+          dashboard = DriverDashboardPage(staff: {'id': user.uid, ...staffData});
+        } else {
+          dashboard = StaffDashboardPage(staff: {'id': user.uid, ...staffData});
+        }
+      } else if (finalRole == UserRole.admin) {
+        dashboard = const AdminDashboardPage();
+      } else {
+        // Customer dashboard
+        dashboard = const CustomerDashboard();
+      }
+
+      if (!mounted || !context.mounted) return;
 
       Navigator.pushReplacement(
         context,
@@ -70,7 +90,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     } catch (e) {
       // Fallback: route to customer dashboard if anything fails
-      if (!mounted) return;
+      if (!mounted || !context.mounted) return;
       print('Error in role-based routing: $e');
       Navigator.pushReplacement(
         context,

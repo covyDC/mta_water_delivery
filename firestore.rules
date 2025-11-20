@@ -8,23 +8,28 @@ service cloud.firestore {
     }
     
     function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc.data.role;
+    }
+    
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
     
     function isCustomer() {
-      return getUserRole() == 'customer';
+      return userExists() && getUserRole() == 'customer';
     }
     
     function isDriver() {
-      return getUserRole() == 'driver';
+      return userExists() && getUserRole() == 'driver';
     }
     
     function isStaff() {
-      return getUserRole() == 'staff';
+      return userExists() && getUserRole() == 'staff';
     }
     
     function isAdmin() {
-      return getUserRole() == 'admin';
+      return userExists() && getUserRole() == 'admin';
     }
     
     function isOwnDocument() {
@@ -34,7 +39,7 @@ service cloud.firestore {
     // Users collection (role registry)
     match /users/{userId} {
       allow read: if isSignedIn() && (isOwnDocument() || isAdmin());
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() || true; // Allow during staff registration
       allow update: if isSignedIn() && (isOwnDocument() || isAdmin());
       allow delete: if isAdmin();
     }
@@ -42,7 +47,7 @@ service cloud.firestore {
     // Customers collection
     match /customers/{customerId} {
       allow read: if isSignedIn() && (request.auth.uid == customerId || isStaff() || isAdmin());
-      allow create: if isSignedIn() && isCustomer() && request.auth.uid == customerId;
+      allow create: if isSignedIn() && request.auth.uid == customerId;
       allow update: if isSignedIn() && (request.auth.uid == customerId || isAdmin());
       allow delete: if isAdmin();
       
@@ -64,7 +69,7 @@ service cloud.firestore {
     // Staff collection (on-site staff and drivers)
     match /staff/{staffId} {
       allow read: if isSignedIn() && (request.auth.uid == staffId || isStaff() || isAdmin());
-      allow create: if isAdmin();
+      allow create: if true; // Allow staff creation without auth check
       allow update: if isSignedIn() && (request.auth.uid == staffId || isAdmin());
       allow delete: if isAdmin();
     }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mta_water_delivery/screens/auth/login.dart';
-import 'package:mta_water_delivery/screens/dashboards/customer_dashboard.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -38,30 +37,57 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
+      // Create auth user
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
+      final uid = userCredential.user!.uid;
+      final email = _emailController.text.trim();
+
       // Store user role in Firestore
-      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-        'uid': userCredential.user!.uid,
-        'email': _emailController.text.trim(),
-        'role': 'customer',
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'uid': uid,
+          'email': email,
+          'role': 'customer',
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (firestoreError) {
+        // If Firestore write fails, delete the auth user and show error
+        await userCredential.user?.delete();
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create user profile: ${firestoreError.toString()}')),
+        );
+        return;
+      }
 
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration successful!')),
-      );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const CustomerDashboard(),
+      // Show success dialog
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('Registration Successful'),
+          content: const Text('Your account has been created successfully. You can now log in.'),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogCtx);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                );
+              },
+              child: const Text('Go to Login'),
+            ),
+          ],
         ),
       );
     } on FirebaseAuthException catch (e) {
@@ -72,11 +98,44 @@ class _RegisterPageState extends State<RegisterPage> {
         'email-already-in-use' => 'This email is already registered',
         'invalid-email' => 'Invalid email format',
         'weak-password' => 'Password should be at least 6 characters',
+        'operation-not-allowed' => 'Registration is currently disabled',
+        'too-many-requests' => 'Too many attempts. Please try again later.',
         _ => e.message ?? 'Registration failed',
       };
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+      // Show error dialog
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('Registration Failed'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      // Show unexpected error dialog
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('Error'),
+          content: Text('An unexpected error occurred: ${e.toString()}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
     }
   }

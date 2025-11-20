@@ -1,0 +1,14 @@
+// Placeholder storage.rules
+// Review and tighten these rules for production use.
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow read to authenticated users, writes restricted to staff/admin.
+    match /{allPaths=**} {
+      allow read: if request.auth != null;
+      // Adjust write rules according to your app's needs; currently restricted to admin role.
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}

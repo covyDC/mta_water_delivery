@@ -75,7 +75,7 @@ class _DriverTrackingMapState extends State<DriverTrackingMap> {
       case 'offline':
         return BitmapDescriptor.hueRed;
       default:
-        return BitmapDescriptor.hueGrey;
+        return BitmapDescriptor.hueRose;
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mta_water_delivery/screens/dashboards/admin_dashboard.dart';
 import 'package:mta_water_delivery/screens/dashboards/staff_dashboard.dart';
@@ -62,24 +63,25 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       final email = _usernameController.text.trim();
       final password = _passwordController.text.trim();
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('staff')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
+      // Authenticate with Firebase Auth
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       if (!mounted) return;
 
-      if (snapshot.docs.isEmpty) {
-        throw Exception('No staff account found with that email');
+      // Get staff details from Firestore
+      final staffSnapshot = await FirebaseFirestore.instance
+          .collection('staff')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (!staffSnapshot.exists) {
+        throw Exception('Staff profile not found');
       }
 
-      final doc = snapshot.docs.first;
-      final staff = {'id': doc.id, ...doc.data()};
-
-      if (staff['password'] != password) {
-        throw Exception('Incorrect staff password');
-      }
+      final staff = {'id': staffSnapshot.id, ...staffSnapshot.data() as Map<String, dynamic>};
 
       setState(() => _isLoading = false);
 
@@ -110,6 +112,23 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
         );
       }
 
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+
+      if (!mounted) return;
+      
+      String errorMessage = 'Login failed';
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No staff account found with that email';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Incorrect password';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Invalid email format';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
     } catch (e) {
       setState(() => _isLoading = false);
 

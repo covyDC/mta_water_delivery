@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterStaffPage extends StatefulWidget {
@@ -24,13 +25,31 @@ class _RegisterStaffPageState extends State<RegisterStaffPage> {
     try {
       // Convert display role to system role
       final systemRole = _selectedRole == 'on-site staff' ? 'staff' : 'driver';
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+      final name = _nameController.text.trim();
 
-      // 🔥 Save to Firestore staff collection
-      final staffDocRef = await FirebaseFirestore.instance.collection('staff').add({
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'role': _selectedRole, // 'on-site staff' or 'driver'
-        'password': _passwordController.text.trim(),
+      // 1️⃣ Create Firebase Auth user
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final uid = userCredential.user!.uid;
+
+      // 2️⃣ Save to Firestore users collection with role
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'uid': uid,
+        'email': email,
+        'role': systemRole, // 'staff' or 'driver'
+        'name': name,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // 3️⃣ Save to Firestore staff collection
+      await FirebaseFirestore.instance.collection('staff').doc(uid).set({
+        'name': name,
+        'email': email,
+        'role': _selectedRole, // 'on-site staff' or 'driver' (display name)
         'status': 'active',
         'inventory': {
           'full': 0,
@@ -40,24 +59,90 @@ class _RegisterStaffPageState extends State<RegisterStaffPage> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Also store in users collection for role-based routing
-      await FirebaseFirestore.instance.collection('users').doc(staffDocRef.id).set({
-        'uid': staffDocRef.id,
-        'email': _emailController.text.trim(),
-        'role': systemRole, // 'staff' or 'driver'
-        'name': _nameController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Staff registered successfully!')),
+      
+      // Show success dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Registration Successful'),
+          content: Text('$name has been registered as $systemRole'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Return to admin page
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
-
-      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String errorMessage = 'Failed to register staff';
+      if (e.code == 'weak-password') {
+        errorMessage = 'Password is too weak';
+      } else if (e.code == 'email-already-in-use') {
+        errorMessage = 'Email is already registered';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (e.code == 'operation-not-allowed') {
+        errorMessage = 'Email/Password registration is disabled';
+      }
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Registration Failed'),
+          content: Text(errorMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      
+      // Print detailed error for debugging
+      print('🔥 Firestore Error: ${e.code} - ${e.message}');
+      
+      String errorMessage = 'Database error: ${e.message}';
+      if (e.code == 'permission-denied') {
+        errorMessage = 'Permission denied. Check Firestore rules or admin status.';
+      }
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Registration Failed'),
+          content: Text(errorMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to register staff: $e')),
+      if (!mounted) return;
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Registration Failed'),
+          content: Text('An error occurred: $e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

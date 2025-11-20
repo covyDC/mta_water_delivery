@@ -18,11 +18,12 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   final user = FirebaseAuth.instance.currentUser;
   int _selectedIndex = 0;
   List<String> _barangays = [];
+  bool _profileCheckDone = false;
 
   @override
   void initState() {
     super.initState();
-    _loadLocationData().whenComplete(() => _checkProfileCompletion());
+    _loadLocationData();
   }
 
   Future<void> _loadLocationData() async {
@@ -36,6 +37,8 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   Future<void> _checkProfileCompletion() async {
+    if (_profileCheckDone) return;
+    _profileCheckDone = true;
     try {
       final doc = await FirebaseFirestore.instance.collection('customers').doc(user?.uid).get();
       final data = doc.data() ?? {};
@@ -44,10 +47,8 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       final address = data['address'] ?? '';
 
       if (fullName.isEmpty || contactNumber.isEmpty || address.isEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _showRequiredProfileDialog(context, fullName, contactNumber, address);
-        });
+        if (!mounted) return;
+        _showRequiredProfileDialog(context, fullName, contactNumber, address);
       }
     } catch (_) {}
   }
@@ -72,19 +73,15 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.local_shipping), label: 'Active'),
           BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.add_shopping_cart), label: 'Order'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
-      floatingActionButton: _selectedIndex == 2
-          ? FloatingActionButton.extended(
-              onPressed: () => _orderGallons(context),
-              icon: const Icon(Icons.add_shopping_cart),
-              label: const Text('Place Order'),
-            )
-          : null,
+      floatingActionButton: null,
     );
   }
 
@@ -95,6 +92,8 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       case 1:
         return _orderHistoryView();
       case 2:
+        return _placeOrderView();
+      case 3:
         return _profileView();
       default:
         return _deliveriesView();
@@ -212,6 +211,11 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   Widget _profileView() {
+    // Trigger profile check only when user views the profile tab
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkProfileCompletion();
+    });
+
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('customers').doc(user?.uid).snapshots(),
       builder: (context, snap) {
@@ -236,12 +240,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               onPressed: () => _showEditProfileDialog(context, fullName, contact, address),
               icon: const Icon(Icons.edit),
               label: const Text('Edit Profile'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () => _orderGallons(context),
-              icon: const Icon(Icons.add_shopping_cart),
-              label: const Text('Place Order'),
             ),
           ]),
         );
@@ -416,17 +414,76 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     );
   }
 
-  void _orderGallons(BuildContext context) {
+  Widget _placeOrderView() {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('customers').doc(user?.uid).snapshots(),
+      builder: (context, snap) {
+        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        final data = snap.data!.data() as Map<String, dynamic>? ?? {};
+        final customerAddress = data['address'] ?? '';
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Place Order',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Product Type',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.local_drink),
+                  title: const Text('Gallon Water'),
+                  subtitle: const Text('19L or 20L containers'),
+                  onTap: () => _showOrderDialog(context, customerAddress, 'gallon'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.water_drop),
+                  title: const Text('Bottled Water'),
+                  subtitle: const Text('500ml or 1.5L bottles'),
+                  onTap: () => _showOrderDialog(context, customerAddress, 'bottled'),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Delivery Address',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  customerAddress.isEmpty ? 'Please complete your profile' : customerAddress,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showOrderDialog(BuildContext context, String customerAddress, String productTypeSelect) {
     final qtyCtrl = TextEditingController(text: '1');
-    String productType = 'gallon';
+    String productType = productTypeSelect;
     String container = 'blue_round';
     String refillOption = 'with_container';
-    String? customerAddress;
-
-    FirebaseFirestore.instance.collection('customers').doc(user?.uid).get().then((doc) {
-      if (doc.exists && mounted) customerAddress = doc['address'] as String?;
-      if (mounted) setState(() {});
-    });
 
     showDialog(
       context: context,
@@ -436,19 +493,55 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             title: const Text('Place Order'),
             content: SingleChildScrollView(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                DropdownButtonFormField<String>(initialValue: productType, items: const [DropdownMenuItem(value: 'gallon', child: Text('Gallon')), DropdownMenuItem(value: 'bottled', child: Text('Bottled Water'))], onChanged: (v) => setState(() => productType = v ?? 'gallon'), decoration: const InputDecoration(labelText: 'Product')),
+                DropdownButtonFormField<String>(
+                  initialValue: productType,
+                  items: const [
+                    DropdownMenuItem(value: 'gallon', child: Text('Gallon')),
+                    DropdownMenuItem(value: 'bottled', child: Text('Bottled Water'))
+                  ],
+                  onChanged: (v) => setState(() => productType = v ?? 'gallon'),
+                  decoration: const InputDecoration(labelText: 'Product'),
+                ),
                 const SizedBox(height: 8),
                 if (productType == 'gallon') ...[
-                  DropdownButtonFormField<String>(initialValue: container, items: const [DropdownMenuItem(value: 'blue_round', child: Text('Blue container — Round')), DropdownMenuItem(value: 'blue_slim', child: Text('Blue container — Slim'))], onChanged: (v) => setState(() => container = v ?? 'blue_round'), decoration: const InputDecoration(labelText: 'Container Type')),
+                  DropdownButtonFormField<String>(
+                    initialValue: container,
+                    items: const [
+                      DropdownMenuItem(value: 'blue_round', child: Text('Blue container — Round')),
+                      DropdownMenuItem(value: 'blue_slim', child: Text('Blue container — Slim'))
+                    ],
+                    onChanged: (v) => setState(() => container = v ?? 'blue_round'),
+                    decoration: const InputDecoration(labelText: 'Container Type'),
+                  ),
                   const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(initialValue: refillOption, items: const [DropdownMenuItem(value: 'with_container', child: Text('With container')), DropdownMenuItem(value: 'refill_only', child: Text('Refill only'))], onChanged: (v) => setState(() => refillOption = v ?? 'with_container'), decoration: const InputDecoration(labelText: 'Refill / Container')),
+                  DropdownButtonFormField<String>(
+                    initialValue: refillOption,
+                    items: const [
+                      DropdownMenuItem(value: 'with_container', child: Text('With container')),
+                      DropdownMenuItem(value: 'refill_only', child: Text('Refill only'))
+                    ],
+                    onChanged: (v) => setState(() => refillOption = v ?? 'with_container'),
+                    decoration: const InputDecoration(labelText: 'Refill / Container'),
+                  ),
                   const SizedBox(height: 8),
                 ],
-                TextField(controller: qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity')),
+                TextField(
+                  controller: qtyCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Quantity'),
+                ),
                 const SizedBox(height: 12),
-                const Align(alignment: Alignment.centerLeft, child: Text('Delivery Address (required):', style: TextStyle(fontWeight: FontWeight.bold))),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Delivery Address (required):', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
                 const SizedBox(height: 8),
-                Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(4)), child: Text(customerAddress ?? 'Loading address...', style: const TextStyle(fontSize: 13))),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(4)),
+                  child: Text(customerAddress.isEmpty ? 'Loading address...' : customerAddress, style: const TextStyle(fontSize: 13)),
+                ),
               ]),
             ),
             actions: [
@@ -457,12 +550,20 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 onPressed: () async {
                   final qty = int.tryParse(qtyCtrl.text) ?? 0;
                   if (qty <= 0) return;
-                  if (customerAddress == null || customerAddress!.isEmpty) {
+                  if (customerAddress.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete your profile address first')));
                     return;
                   }
 
-                  final order = model.Order(customerId: user?.uid ?? '', customerName: user?.displayName ?? user?.email, productType: productType, options: {'container': container, 'refill': refillOption}, quantity: qty, address: customerAddress, status: 'pending');
+                  final order = model.Order(
+                    customerId: user?.uid ?? '',
+                    customerName: user?.displayName ?? user?.email,
+                    productType: productType,
+                    options: {'container': container, 'refill': refillOption},
+                    quantity: qty,
+                    address: customerAddress,
+                    status: 'pending',
+                  );
                   final navigator = Navigator.of(context);
                   final messenger = ScaffoldMessenger.of(context);
                   await FirestoreService.createOrder(order);
