@@ -1,0 +1,73 @@
+// FIRESTORE SECURITY RULES
+// Navigate to Firebase Console > Firestore > Rules and paste this (for testing)
+// 
+// ⚠️ WARNING: These rules are permissive for development/testing only!
+// For production, implement proper authentication checks.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Customers: Can read/write their own profile
+    match /customers/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Orders: Customers read/write their own, staff can read all
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.customerId;
+      allow read: if request.auth != null; // Staff can read all orders
+    }
+    
+    // Deliveries: Customers read their own, drivers read assigned, staff can read all
+    match /deliveries/{deliveryId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.customerId ||
+        request.auth.uid == resource.data.assignedTo
+      );
+      allow read: if request.auth != null; // Staff/admin can read all
+      allow write: if request.auth != null && request.auth.uid == resource.data.assignedTo;
+    }
+    
+    // Staff: Allows local admin login access
+    match /staff/{docId} {
+      allow read, write: if true;
+    }
+    
+    // Notifications: Users can read their notifications
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.driverId ||
+        request.auth.uid == resource.data.customerId ||
+        request.auth.uid == resource.data.staffId
+      );
+      allow write: if true; // App can create notifications
+    }
+    
+    // Activity logs: Accessible to respective staff member
+    match /staff/{staffId}/activity_logs/{logId} {
+      allow read, write: if request.auth != null && request.auth.uid == staffId;
+    }
+  }
+}
+
+// ============================================================================
+// FIREBASE STORAGE SECURITY RULES
+// Navigate to Firebase Console > Storage > Rules and paste this (for testing)
+// ============================================================================
+
+// rules_version = '2';
+// service firebase.storage {
+//   match /b/{bucket}/o {
+//     // Allow all read/write for testing
+//     match /{allPaths=**} {
+//       allow read, write: if true;
+//     }
+//     
+//     // Production rules:
+//     // match /deliveries/{deliveryId}/{allPaths=**} {
+//     //   allow write: if request.auth.uid in ["driver_uid"];
+//     //   allow read: if true;
+//     // }
+//   }
+// }

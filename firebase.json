@@ -1,1 +1,38 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"mta-water-delivery-8697f","appId":"1:563722881205:android:21ed4298bb00ab1aebd6fc","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"mta-water-delivery-8697f","configurations":{"android":"1:563722881205:android:21ed4298bb00ab1aebd6fc","ios":"1:563722881205:ios:bac5d0050ec42667ebd6fc","macos":"1:563722881205:ios:bac5d0050ec42667ebd6fc","web":"1:563722881205:web:9c1f4496f1a3b534ebd6fc","windows":"1:563722881205:web:87ac1acc24d63629ebd6fc"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "mta-water-delivery-8697f",
+          "appId": "1:563722881205:android:21ed4298bb00ab1aebd6fc",
+          "fileOutput": "android/app/google-services.json"
+        }
+      }
+    },
+    "dart": {
+      "lib/firebase_options.dart": {
+        "projectId": "mta-water-delivery-8697f",
+        "configurations": {
+          "android": "1:563722881205:android:21ed4298bb00ab1aebd6fc",
+          "ios": "1:563722881205:ios:bac5d0050ec42667ebd6fc",
+          "macos": "1:563722881205:ios:bac5d0050ec42667ebd6fc",
+          "web": "1:563722881205:web:9c1f4496f1a3b534ebd6fc",
+          "windows": "1:563722881205:web:87ac1acc24d63629ebd6fc"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log"
+    ]
+  }
+}

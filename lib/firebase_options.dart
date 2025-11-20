@@ -41,32 +41,34 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-  apiKey: 'AIzaSyDNnZg0HJc2_L5goz-SUFrrWCeqVU7wIok',
-  appId: '1:563722881205:web:9c1f4496f1a3b534ebd6fc',
-  messagingSenderId: '563722881205',
-  projectId: 'mta-water-delivery-8697f',
-  authDomain: 'mta-water-delivery-8697f.firebaseapp.com',
-  storageBucket: 'mta-water-delivery-8697f.firebasestorage.app',
-  measurementId: 'G-WWLSVF16Q8',
-  databaseURL: "https://mta-water-delivery-8697f-default-rtdb.asia-southeast1.firebasedatabase.app/",
-); 
-
+    apiKey: 'AIzaSyDNnZg0HJc2_L5goz-SUFrrWCeqVU7wIok',
+    appId: '1:563722881205:web:9c1f4496f1a3b534ebd6fc',
+    messagingSenderId: '563722881205',
+    projectId: 'mta-water-delivery-8697f',
+    authDomain: 'mta-water-delivery-8697f.firebaseapp.com',
+    databaseURL: 'https://mta-water-delivery-8697f-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'mta-water-delivery-8697f.firebasestorage.app',
+    measurementId: 'G-WWLSVF16Q8',
+  );
 
   static const FirebaseOptions android = FirebaseOptions(
-  apiKey: 'AIzaSyBgW4JFdN_SgtTRt_cNbqxv-GbWJEQNRCk',
-  appId: '1:563722881205:android:21ed4298bb00ab1aebd6fc',
-  messagingSenderId: '563722881205',
-  projectId: 'mta-water-delivery-8697f',
-  storageBucket: 'mta-water-delivery-8697f.firebasestorage.app',
-  databaseURL: "https://mta-water-delivery-8697f-default-rtdb.asia-southeast1.firebasedatabase.app/",
-); 
+    apiKey: 'AIzaSyBgW4JFdN_SgtTRt_cNbqxv-GbWJEQNRCk',
+    appId: '1:563722881205:android:21ed4298bb00ab1aebd6fc',
+    messagingSenderId: '563722881205',
+    projectId: 'mta-water-delivery-8697f',
+    databaseURL: 'https://mta-water-delivery-8697f-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'mta-water-delivery-8697f.firebasestorage.app',
+  );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyB0Lyl1sWOzUWYeuiL-GzCC7KyQWn8S0lc',
     appId: '1:563722881205:ios:bac5d0050ec42667ebd6fc',
     messagingSenderId: '563722881205',
     projectId: 'mta-water-delivery-8697f',
+    databaseURL: 'https://mta-water-delivery-8697f-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'mta-water-delivery-8697f.firebasestorage.app',
+    androidClientId: '563722881205-mc4loc3i34thn7vuoto36kuuo19is461.apps.googleusercontent.com',
+    iosClientId: '563722881205-6kfj4udcuei6f40j5dvraabqtosl4r38.apps.googleusercontent.com',
     iosBundleId: 'com.example.mtaWaterDelivery',
   );
 
@@ -75,7 +77,10 @@ class DefaultFirebaseOptions {
     appId: '1:563722881205:ios:bac5d0050ec42667ebd6fc',
     messagingSenderId: '563722881205',
     projectId: 'mta-water-delivery-8697f',
+    databaseURL: 'https://mta-water-delivery-8697f-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'mta-water-delivery-8697f.firebasestorage.app',
+    androidClientId: '563722881205-mc4loc3i34thn7vuoto36kuuo19is461.apps.googleusercontent.com',
+    iosClientId: '563722881205-6kfj4udcuei6f40j5dvraabqtosl4r38.apps.googleusercontent.com',
     iosBundleId: 'com.example.mtaWaterDelivery',
   );
 
@@ -85,7 +90,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '563722881205',
     projectId: 'mta-water-delivery-8697f',
     authDomain: 'mta-water-delivery-8697f.firebaseapp.com',
+    databaseURL: 'https://mta-water-delivery-8697f-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'mta-water-delivery-8697f.firebasestorage.app',
     measurementId: 'G-ZJHSCXPZBZ',
   );
+
 }

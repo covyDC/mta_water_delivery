@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    function isCustomer() {
+      return getUserRole() == 'customer';
+    }
+    
+    function isDriver() {
+      return getUserRole() == 'driver';
+    }
+    
+    function isStaff() {
+      return getUserRole() == 'staff';
+    }
+    
+    function isAdmin() {
+      return getUserRole() == 'admin';
+    }
+    
+    function isOwnDocument() {
+      return request.auth.uid == resource.data.uid;
+    }
+    
+    // Users collection (role registry)
+    match /users/{userId} {
+      allow read: if isSignedIn() && (isOwnDocument() || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (isOwnDocument() || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    // Customers collection
+    match /customers/{customerId} {
+      allow read: if isSignedIn() && (request.auth.uid == customerId || isStaff() || isAdmin());
+      allow create: if isSignedIn() && isCustomer() && request.auth.uid == customerId;
+      allow update: if isSignedIn() && (request.auth.uid == customerId || isAdmin());
+      allow delete: if isAdmin();
+      
+      // Orders subcollection
+      match /orders/{orderId} {
+        allow read: if isSignedIn() && (request.auth.uid == customerId || isDriver() || isStaff() || isAdmin());
+        allow create: if isSignedIn() && request.auth.uid == customerId;
+        allow update: if isSignedIn() && (isDriver() || isStaff() || isAdmin());
+        allow delete: if isAdmin();
+      }
+      
+      // Deliveries subcollection
+      match /deliveries/{deliveryId} {
+        allow read: if isSignedIn() && (request.auth.uid == customerId || isDriver() || isStaff() || isAdmin());
+        allow write: if isSignedIn() && (isDriver() || isStaff() || isAdmin());
+      }
+    }
+    
+    // Staff collection (on-site staff and drivers)
+    match /staff/{staffId} {
+      allow read: if isSignedIn() && (request.auth.uid == staffId || isStaff() || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isSignedIn() && (request.auth.uid == staffId || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    // Orders collection (global order queue)
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (resource.data.customer_id == request.auth.uid || isStaff() || isDriver() || isAdmin());
+      allow create: if isSignedIn() && isCustomer();
+      allow update: if isSignedIn() && (isStaff() || isDriver() || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    // Deliveries collection (global delivery queue)
+    match /deliveries/{deliveryId} {
+      allow read: if isSignedIn() && (resource.data.customer_id == request.auth.uid || resource.data.driver_id == request.auth.uid || isStaff() || isAdmin());
+      allow create: if isSignedIn() && (isStaff() || isAdmin());
+      allow update: if isSignedIn() && (isDriver() || isStaff() || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    // Riders/Drivers collection
+    match /riders/{riderId} {
+      allow read: if isSignedIn() && (request.auth.uid == riderId || isStaff() || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isSignedIn() && (request.auth.uid == riderId || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    // Inventory collection
+    match /inventory/{inventoryId} {
+      allow read: if isSignedIn() && (isStaff() || isAdmin());
+      allow write: if isSignedIn() && (isStaff() || isAdmin());
+    }
+    
+    // Reports collection (staff reports)
+    match /reports/{reportId} {
+      allow read: if isSignedIn() && (isStaff() || isAdmin());
+      allow create: if isSignedIn() && (isStaff() || isAdmin());
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Activity logs collection
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn() && isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Notifications collection (push notifications)
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && (isStaff() || isAdmin());
+      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+    }
+    
+    // Email queue collection (for notification service)
+    match /emailQueue/{emailId} {
+      allow read: if isSignedIn() && isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // OTP tokens collection (for 2FA)
+    match /otpTokens/{tokenId} {
+      allow read: if false; // OTP tokens should not be readable
+      allow create: if isSignedIn();
+      allow update: if false; // Should not be updatable once created
+      allow delete: if isAdmin();
+    }
+    
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-import 'main.dart';        // Home screen after login
-import 'register.dart';    // Registration page
-import 'admin_login.dart'; // Admin login page
+import 'package:mta_water_delivery/screens/dashboards/customer_dashboard.dart';
+import 'package:mta_water_delivery/screens/dashboards/driver_dashboard.dart';
+import 'package:mta_water_delivery/screens/dashboards/staff_dashboard.dart';
+import 'package:mta_water_delivery/screens/dashboards/admin_dashboard.dart';
+import 'package:mta_water_delivery/screens/auth/register.dart';
+import 'package:mta_water_delivery/screens/auth/admin_login.dart';
+import 'package:mta_water_delivery/services/user_auth_service.dart';
+import 'package:mta_water_delivery/services/activity_logger.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,12 +23,60 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Route user to appropriate dashboard based on role
+  Future<void> _routeToRoleDashboard(User user) async {
+    try {
+      final userService = UserAuthService();
+      
+      // Get user role
+      final role = await userService.getUserRole(user.uid);
+      
+      // Default to customer if role not found (backwards compatibility)
+      final finalRole = role ?? UserRole.customer;
+
+      // Check platform access
+      final canAccess = await userService.canAccessPlatform(user.uid, finalRole);
+      if (!canAccess) {
+        await FirebaseAuth.instance.signOut();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${finalRole.name} users cannot access this platform')),
+        );
+        return;
+      }
+
+      if (!mounted) return;
+
+      // Route to appropriate dashboard
+      final dashboard = switch (finalRole) {
+        UserRole.customer => const CustomerDashboard(),
+        UserRole.driver => const DriverDashboardPage(staff: {}),
+        UserRole.staff => const StaffDashboardPage(staff: {}),
+        UserRole.admin => const AdminDashboardPage(),
+      };
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => dashboard),
+      );
+    } catch (e) {
+      // Fallback: route to customer dashboard if anything fails
+      if (!mounted) return;
+      print('Error in role-based routing: $e');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const CustomerDashboard()),
+      );
+    }
   }
 
   /// =========================
@@ -48,17 +100,13 @@ class _LoginPageState extends State<LoginPage> {
         accessToken: googleAuth.accessToken,
       );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const MyHomePage(title: 'Flutter Demo Home Page'),
-        ),
-      );
+      // Route based on user role
+      await _routeToRoleDashboard(userCredential.user!);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -77,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
@@ -85,12 +133,14 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const MyHomePage(title: 'Flutter Demo Home Page'),
-        ),
-      );
+      // Log successful login
+      final userService = UserAuthService();
+      final role = await userService.getUserRole(userCredential.user!.uid);
+      final activityLogger = ActivityLogger();
+      await activityLogger.logLogin(_emailController.text.trim(), role?.name ?? 'customer', true, null);
+
+      // Route based on user role
+      await _routeToRoleDashboard(userCredential.user!);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -101,6 +151,12 @@ class _LoginPageState extends State<LoginPage> {
         _ => e.message ?? 'Login failed',
       };
 
+      // Log failed login
+      final activityLogger = ActivityLogger();
+      await activityLogger.logLogin(_emailController.text.trim(), 'unknown', false, e.code);
+
+      if (!mounted) return;
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
@@ -149,12 +205,22 @@ class _LoginPageState extends State<LoginPage> {
                   // Password
                   TextFormField(
                     controller: _passwordController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Password',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.lock_outline),
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
                     ),
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                     autofillHints: const [AutofillHints.password],
                     validator: (value) {
                       if (value == null || value.isEmpty) {

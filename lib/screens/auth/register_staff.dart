@@ -13,23 +13,41 @@ class _RegisterStaffPageState extends State<RegisterStaffPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
-  final _roleController = TextEditingController();
 
   bool _isLoading = false;
+  String _selectedRole = 'on-site staff'; // Default role
 
   Future<void> _registerStaff() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
     try {
-      // 🔥 Save to Firestore ONLY (no Firebase Auth user created)
-      await FirebaseFirestore.instance.collection('staff').add({
+      // Convert display role to system role
+      final systemRole = _selectedRole == 'on-site staff' ? 'staff' : 'driver';
+
+      // 🔥 Save to Firestore staff collection
+      final staffDocRef = await FirebaseFirestore.instance.collection('staff').add({
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
-        'role': _roleController.text.trim(),
-        'password': _passwordController.text.trim(), // optional
+        'role': _selectedRole, // 'on-site staff' or 'driver'
+        'password': _passwordController.text.trim(),
+        'status': 'active',
+        'inventory': {
+          'full': 0,
+          'empty': 0,
+          'refillReturned': 0,
+        },
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      // Also store in users collection for role-based routing
+      await FirebaseFirestore.instance.collection('users').doc(staffDocRef.id).set({
+        'uid': staffDocRef.id,
+        'email': _emailController.text.trim(),
+        'role': systemRole, // 'staff' or 'driver'
+        'name': _nameController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,15 +119,28 @@ class _RegisterStaffPageState extends State<RegisterStaffPage> {
                 ),
                 const SizedBox(height: 16),
 
-                TextFormField(
-                  controller: _roleController,
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedRole,
                   decoration: const InputDecoration(
-                    labelText: 'Role (e.g. Staff, Carrier, Employee)',
+                    labelText: 'Staff Role',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Enter role' : null,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'on-site staff',
+                      child: Text('On-Site Staff'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'driver',
+                      child: Text('Driver'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedRole = value);
+                    }
+                  },
                 ),
 
                 const SizedBox(height: 24),
