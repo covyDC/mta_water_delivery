@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// ...existing code...
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mta_water_delivery/screens/dashboards/customer_dashboard.dart';
-import 'package:mta_water_delivery/screens/dashboards/driver_dashboard.dart';
-import 'package:mta_water_delivery/screens/dashboards/staff_dashboard.dart';
-import 'package:mta_water_delivery/screens/dashboards/admin_dashboard.dart';
+// ...existing code...
 import 'package:mta_water_delivery/screens/auth/register.dart';
 import 'package:mta_water_delivery/screens/auth/admin_login.dart';
-import 'package:mta_water_delivery/services/user_auth_service.dart';
+// ...existing code...
+// ...existing code...
 import 'package:mta_water_delivery/services/activity_logger.dart';
 
 class LoginPage extends StatefulWidget {
@@ -33,100 +32,37 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  /// Route user to appropriate dashboard based on role
-  Future<void> _routeToRoleDashboard(User user) async {
-    try {
-      final userService = UserAuthService();
-      
-      // Get user role
-      final role = await userService.getUserRole(user.uid);
-      
-      // Default to customer if role not found (backwards compatibility)
-      final finalRole = role ?? UserRole.customer;
-
-      // Check platform access
-      final canAccess = await userService.canAccessPlatform(user.uid, finalRole);
-      if (!canAccess) {
-        await FirebaseAuth.instance.signOut();
-        if (!mounted) return;
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${finalRole.name} users cannot access this platform')),
-        );
-        return;
-      }
-
-      if (!mounted || !context.mounted) return;
-
-      // Route to appropriate dashboard
-      Widget dashboard;
-      
-      if (finalRole == UserRole.driver || finalRole == UserRole.staff) {
-        // Fetch staff data for driver/staff dashboards
-        final staffDoc = await FirebaseFirestore.instance
-            .collection('staff')
-            .doc(user.uid)
-            .get();
-        
-        final staffData = staffDoc.exists ? staffDoc.data() ?? {} : {};
-        
-        if (finalRole == UserRole.driver) {
-          dashboard = DriverDashboardPage(staff: {'id': user.uid, ...staffData});
-        } else {
-          dashboard = StaffDashboardPage(staff: {'id': user.uid, ...staffData});
-        }
-      } else if (finalRole == UserRole.admin) {
-        dashboard = const AdminDashboardPage();
-      } else {
-        // Customer dashboard
-        dashboard = const CustomerDashboard();
-      }
-
-      if (!mounted || !context.mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => dashboard),
-      );
-    } catch (e) {
-      // Fallback: route to customer dashboard if anything fails
-      if (!mounted || !context.mounted) return;
-      print('Error in role-based routing: $e');
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const CustomerDashboard()),
-      );
-    }
+  /// Route user to customer dashboard only
+  Future<void> _routeToCustomerDashboard(User user) async {
+    if (!mounted || !context.mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const CustomerDashboard()),
+    );
   }
 
   /// =========================
-  /// Google Sign-In
+  /// Google Sign-In (Customer only)
   /// =========================
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
-
     try {
       final googleSignIn = GoogleSignIn(scopes: ['email']);
       final googleUser = await googleSignIn.signIn();
-
       if (googleUser == null) {
         setState(() => _isLoading = false);
         return;
       }
-
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
         accessToken: googleAuth.accessToken,
       );
-
       final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-
       if (!mounted) return;
       setState(() => _isLoading = false);
-
-      // Route based on user role
-      await _routeToRoleDashboard(userCredential.user!);
+      // Route to customer dashboard only
+      await _routeToCustomerDashboard(userCredential.user!);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -137,46 +73,35 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   /// =========================
-  /// Email/Password Login
+  /// Email/Password Login (Customer only)
   /// =========================
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-
     try {
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
       if (!mounted) return;
       setState(() => _isLoading = false);
-
       // Log successful login
-      final userService = UserAuthService();
-      final role = await userService.getUserRole(userCredential.user!.uid);
       final activityLogger = ActivityLogger();
-      await activityLogger.logLogin(_emailController.text.trim(), role?.name ?? 'customer', true, null);
-
-      // Route based on user role
-      await _routeToRoleDashboard(userCredential.user!);
+      await activityLogger.logLogin(_emailController.text.trim(), 'customer', true, null);
+      // Route to customer dashboard only
+      await _routeToCustomerDashboard(userCredential.user!);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-
       final message = switch (e.code) {
         'user-not-found' => 'No user found with this email',
         'wrong-password' => 'Incorrect password',
         _ => e.message ?? 'Login failed',
       };
-
       // Log failed login
       final activityLogger = ActivityLogger();
-      await activityLogger.logLogin(_emailController.text.trim(), 'unknown', false, e.code);
-
+      await activityLogger.logLogin(_emailController.text.trim(), 'customer', false, e.code);
       if (!mounted) return;
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
@@ -304,7 +229,7 @@ class _LoginPageState extends State<LoginPage> {
                   // Admin Login Button (➡ Goes to admin_login.dart)
                   ElevatedButton.icon(
                     icon: const Icon(Icons.admin_panel_settings),
-                    label: const Text('Admin Login'),
+                    label: const Text('Admin / Staff / Driver Login'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black87,
                       foregroundColor: Colors.white,
