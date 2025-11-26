@@ -989,9 +989,10 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                           try {
                             final ref = FirebaseFirestore.instance.collection('staff').doc(uid);
                             final snap = await ref.get();
-                            if (!snap.exists) {
+                              if (!snap.exists) {
                               await ref.set({
                                 'name': currentUser?.displayName ?? currentUser?.email ?? 'Staff ${uid.substring(0, 6)}',
+                                'fullName': currentUser?.displayName ?? currentUser?.email ?? 'Staff ${uid.substring(0, 6)}',
                                 'email': currentUser?.email ?? '',
                                 'role': 'staff',
                                 'status': 'online',
@@ -1014,6 +1015,7 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                             if (!drvSnap.exists) {
                               await drvRef.set({
                                 'name': assignedDriverName ?? 'Driver ${assignedDriverId.substring(0, 6)}',
+                                'fullName': assignedDriverName ?? 'Driver ${assignedDriverId.substring(0, 6)}',
                                 'status': 'online',
                                 'createdAt': FieldValue.serverTimestamp(),
                               });
@@ -1027,6 +1029,7 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                             if (!staffSnap.exists) {
                               await staffRef.set({
                                 'name': assignedDriverName ?? 'Driver ${assignedDriverId.substring(0, 6)}',
+                                'fullName': assignedDriverName ?? 'Driver ${assignedDriverId.substring(0, 6)}',
                                 'email': '',
                                 'role': 'driver',
                                 'status': 'online',

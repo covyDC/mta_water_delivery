@@ -42,12 +42,14 @@ class _RegisterStaffPageState extends State<RegisterStaffPage> {
         'email': email,
         'role': systemRole, // 'staff' or 'driver'
         'name': name,
+        'fullName': name,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       // 3️⃣ Save to Firestore staff collection
       await FirebaseFirestore.instance.collection('staff').doc(uid).set({
         'name': name,
+        'fullName': name,
         'email': email,
         'role': _selectedRole, // 'on-site staff' or 'driver' (display name)
         'status': 'online',
