@@ -120,7 +120,7 @@ REQUIREMENTS FULFILLMENT:
 │  Requirement: Manually adjust inventory                                        │
 │  Status:      ✅ COMPLETE (100%)                                              │
 │  Features:    • View current stock levels                                    │
-│               • Add new products                                              │
+│               • Product management removed — prices fixed in lib/config/product_prices.dart │
 │               • Update quantities                                             │
 │               • Delete products                                               │
 │               • Real-time inventory tracking                                 │

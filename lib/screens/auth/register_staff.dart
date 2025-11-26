@@ -50,7 +50,7 @@ class _RegisterStaffPageState extends State<RegisterStaffPage> {
         'name': name,
         'email': email,
         'role': _selectedRole, // 'on-site staff' or 'driver' (display name)
-        'status': 'active',
+        'status': 'online',
         'inventory': {
           'full': 0,
           'empty': 0,

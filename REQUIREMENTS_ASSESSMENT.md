@@ -61,7 +61,7 @@
 - ✅ Manually adjust inventory
   - ✅ View current inventory
   - ✅ Update stock levels
-  - ✅ Add new products
+  - ✅ Product management removed — prices are fixed in `lib/config/product_prices.dart`
 - ✅ Generate required reports
   - ✅ Orders report
   - ✅ Deliveries report

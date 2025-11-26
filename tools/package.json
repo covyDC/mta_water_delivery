@@ -4,7 +4,9 @@
   "description": "Developer helper scripts for mta_water_delivery (admin creation, seeding)",
   "main": "create_admin.js",
   "scripts": {
-    "create-admin": "node create_admin.js"
+    "create-admin": "node create_admin.js",
+    "migrate-status": "node migrate_status.js",
+    "seed-emulator": "node seed_emulator.js"
   },
   "dependencies": {
     "firebase-admin": "^11.0.0"

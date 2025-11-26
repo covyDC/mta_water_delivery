@@ -7,30 +7,37 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function getUserRole() {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return userDoc.data.role;
-    }
-    
+    // Determine roles by presence/role fields in the staff/drivers/customers collections
     function userExists() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+             || exists(/databases/$(database)/documents/staff/$(request.auth.uid))
+             || exists(/databases/$(database)/documents/drivers/$(request.auth.uid))
+             || exists(/databases/$(database)/documents/customers/$(request.auth.uid));
     }
-    
+
     function isCustomer() {
-      return userExists() && getUserRole() == 'customer';
+      return exists(/databases/$(database)/documents/customers/$(request.auth.uid));
     }
-    
+
     function isDriver() {
-      return userExists() && getUserRole() == 'driver';
+      // driver may be in drivers collection or as a staff doc with role == 'driver'
+      return exists(/databases/$(database)/documents/drivers/$(request.auth.uid))
+             || (exists(/databases/$(database)/documents/staff/$(request.auth.uid))
+                 && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role == 'driver');
     }
-    
+
     function isStaff() {
-      return userExists() && getUserRole() == 'staff';
+      // staff refers to on-site staff (not drivers)
+      return exists(/databases/$(database)/documents/staff/$(request.auth.uid))
+             && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role != 'driver';
     }
     
     function isAdmin() {
-      return userExists() && getUserRole() == 'admin';
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+
+    // Product management was removed earlier; the products collection is read-only.
     
     function isOwnDocument() {
       return request.auth.uid == resource.data.uid;
@@ -97,6 +104,14 @@ service cloud.firestore {
       allow update: if isSignedIn() && (request.auth.uid == riderId || isAdmin());
       allow delete: if isAdmin();
     }
+
+    // Drivers collection
+    match /drivers/{driverId} {
+      allow read: if isSignedIn() && (request.auth.uid == driverId || isStaff() || isAdmin());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == driverId || isStaff() || isAdmin());
+      allow delete: if isAdmin();
+    }
     
     // Inventory collection
     match /inventory/{inventoryId} {
@@ -142,6 +157,16 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update: if false; // Should not be updatable once created
       allow delete: if isAdmin();
+    }
+
+    // Products collection (pricing management)
+    match /products/{productId} {
+      allow read: if isSignedIn(); // All signed-in users can view products (customers need prices)
+      // Product management has been removed from the app — keep products
+      // read-only. Pricing is fixed in the app configuration.
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
     
     // Default deny all

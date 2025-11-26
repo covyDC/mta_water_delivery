@@ -125,7 +125,7 @@ Your application implementation is **85-90% complete** with all core requirement
 
 - ✅ **Manually Adjust Inventory**
   - View current stock levels
-  - Add new products
+  - Product management removed — prices are fixed in `lib/config/product_prices.dart`
   - Update quantities
   - Delete products
   - Real-time inventory tracking

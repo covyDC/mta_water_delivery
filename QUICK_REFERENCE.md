@@ -19,6 +19,15 @@ flutter run -d chrome    # or: flutter run -d windows
 2. **Set Profile**: Name, Phone, Address
 3. **Place Order**: Select product, quantity, confirm
 4. **Login as Admin**: `admin` / `12345678`
+
+Note: Product management (create/update/delete) has been removed from the app.
+Product prices are fixed app-wide and stored in `lib/config/product_prices.dart`.
+Update those values and redeploy if you need to change pricing.
+ 
+Product pricing (current):
+- Gallon refill (round/slim): ₱25 each
+- Gallon with new container (round/slim): ₱150 each
+- Bottled sizes: 350ml ₱8, 500ml ₱10, 1L ₱18, 1.5L ₱22, 5L ₱50
 5. **Register Staff**: `staff@test.com` / `Staff@123` → Select "On-Site Staff"
 6. **Register Driver**: `driver@test.com` / `Driver@123` → Select "Driver"
 7. **Staff Login**: Confirm order, check inventory, assign to driver

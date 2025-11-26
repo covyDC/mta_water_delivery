@@ -22,6 +22,16 @@ cd ..
 ```powershell
 cd 'C:\COVY\mta_water_delivery'
 firebase emulators:start --only firestore,auth
+
+Note: the Firestore emulator requires Java (JRE/JDK 11+) installed on your machine.
+On Windows install a JDK (Temurin or OpenJDK are fine) and make sure `java -version` works before starting emulators.
+
+Alternatively you can start the emulators from the repository's emulator-only config
+which avoids firebase.json validation issues introduced by unrelated keys:
+
+```powershell
+firebase emulators:start --config firebase.emulators.json --only functions,firestore,auth
+```
 ```
 
 The Emulator UI will usually be available at http://localhost:4000.
@@ -40,6 +50,13 @@ flutter run -d chrome
 - staff@test.local / password
 - driver@test.local / password
 - customer@test.local / password
+
+To seed the emulators quickly with test accounts and documents run (with emulators running):
+
+```powershell
+# from project root
+$env:FIRESTORE_EMULATOR_HOST='localhost:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='localhost:9099'; cd tools; npm run seed-emulator
+```
 
 ---
 

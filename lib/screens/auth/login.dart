@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 // ...existing code...
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mta_water_delivery/screens/dashboards/customer_dashboard.dart';
@@ -33,8 +34,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   /// Route user to customer dashboard only
-  Future<void> _routeToCustomerDashboard(User user) async {
-    if (!mounted || !context.mounted) return;
+  void _routeToCustomerDashboard(User user) {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const CustomerDashboard()),
@@ -46,6 +47,7 @@ class _LoginPageState extends State<LoginPage> {
   /// =========================
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final googleSignIn = GoogleSignIn(scopes: ['email']);
       final googleUser = await googleSignIn.signIn();
@@ -59,10 +61,22 @@ class _LoginPageState extends State<LoginPage> {
         accessToken: googleAuth.accessToken,
       );
       final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      // Disallow staff or driver accounts from signing in via the customer flow
+      final uid = userCredential.user?.uid;
+      if (uid != null && await _isStaffOrDriver(uid)) {
+        // log and sign out to prevent access through the customer UI
+        await FirebaseAuth.instance.signOut();
+        if (!mounted) return;
+        final activityLogger = ActivityLogger();
+        await activityLogger.logLogin(userCredential.user?.email ?? '', 'customer', false, 'blocked-role');
+        messenger.showSnackBar(const SnackBar(content: Text('Staff/Driver accounts cannot log in here. Use Admin / Staff / Driver Login instead.')));
+        setState(() => _isLoading = false);
+        return;
+      }
       if (!mounted) return;
       setState(() => _isLoading = false);
       // Route to customer dashboard only
-      await _routeToCustomerDashboard(userCredential.user!);
+      _routeToCustomerDashboard(userCredential.user!);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -76,6 +90,7 @@ class _LoginPageState extends State<LoginPage> {
   /// Email/Password Login (Customer only)
   /// =========================
   Future<void> _login() async {
+    final messenger = ScaffoldMessenger.of(context);
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
@@ -83,13 +98,24 @@ class _LoginPageState extends State<LoginPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      // Block staff/driver accounts from signing in with the customer form
+      if (userCredential.user != null && await _isStaffOrDriver(userCredential.user!.uid)) {
+        // sign out immediately and show a friendly message
+        await FirebaseAuth.instance.signOut();
+        final activityLogger = ActivityLogger();
+        await activityLogger.logLogin(_emailController.text.trim(), 'customer', false, 'blocked-role');
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        messenger.showSnackBar(const SnackBar(content: Text('Staff/Driver accounts cannot sign in here — use Admin / Staff / Driver Login.')));
+        return;
+      }
       if (!mounted) return;
       setState(() => _isLoading = false);
       // Log successful login
       final activityLogger = ActivityLogger();
       await activityLogger.logLogin(_emailController.text.trim(), 'customer', true, null);
       // Route to customer dashboard only
-      await _routeToCustomerDashboard(userCredential.user!);
+      _routeToCustomerDashboard(userCredential.user!);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -106,6 +132,20 @@ class _LoginPageState extends State<LoginPage> {
         SnackBar(content: Text(message)),
       );
     }
+  }
+
+  Future<bool> _isStaffOrDriver(String uid) async {
+    try {
+      final staffDoc = await FirebaseFirestore.instance.collection('staff').doc(uid).get();
+      if (staffDoc.exists) return true;
+    } catch (_) {}
+
+    try {
+      final driverDoc = await FirebaseFirestore.instance.collection('drivers').doc(uid).get();
+      if (driverDoc.exists) return true;
+    } catch (_) {}
+
+    return false;
   }
 
   /// =========================

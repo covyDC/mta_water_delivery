@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mta_water_delivery/screens/dashboards/admin_dashboard.dart';
@@ -22,6 +21,8 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   bool _isStaffMode = false;
   bool _obscurePassword = true;
 
+  // Embedded admin username/password (dev/testing convenience). These are
+  // local-only and should be removed for production builds.
   final String _adminUsername = 'admin';
   final String _adminPassword = '12345678';
 
@@ -37,8 +38,10 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     if (_usernameController.text.trim() == _adminUsername &&
         _passwordController.text.trim() == _adminPassword) {
 
+      // Embedded admin credentials (dev-only). Directly navigate to the
+      // Admin dashboard. This is intentionally a local convenience and does
+      // not authenticate against Firebase.
       setState(() => _isLoading = false);
-
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -90,13 +93,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       // Route based on role
       final role = staff['role'] ?? 'on-site staff';
       if (role == 'driver') {
-        // Check if driver is accessing from mobile only
-        if (kIsWeb) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Drivers can only access the app via mobile devices')),
-          );
-          return;
-        }
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mta_water_delivery/config/product_prices.dart';
 
 class ReportsService {
   static final ReportsService _instance = ReportsService._internal();
@@ -34,7 +35,9 @@ class ReportsService {
       double totalRevenue = 0;
       for (var doc in docs) {
         final quantity = doc['quantity'] as int? ?? 0;
-        final price = doc['price'] as double? ?? 50.0; // Default price per gallon
+        final productType = doc['productType'] as String? ?? 'gallon';
+        final options = (doc['options'] is Map) ? Map<String, dynamic>.from(doc['options']) : <String, dynamic>{};
+        final price = doc['price'] as double? ?? ProductPrices.getPrice(productType, options);
         totalRevenue += (quantity * price).toDouble();
       }
 
@@ -148,7 +151,9 @@ class ReportsService {
         final customerId = order['customer_id'] as String?;
         if (customerId != null) {
           customerOrders[customerId] = (customerOrders[customerId] ?? 0) + 1;
-          final price = order['price'] as double? ?? 50.0;
+          final productType = order['productType'] as String? ?? 'gallon';
+          final options = (order['options'] is Map) ? Map<String, dynamic>.from(order['options']) : <String, dynamic>{};
+          final price = order['price'] as double? ?? ProductPrices.getPrice(productType, options);
           final quantity = order['quantity'] as int? ?? 1;
           customerRevenue[customerId] = (customerRevenue[customerId] ?? 0) + (quantity * price);
         }

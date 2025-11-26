@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mta_water_delivery/services/reports_service.dart';
+// ignore_for_file: use_build_context_synchronously
+import 'package:mta_water_delivery/config/product_prices.dart';
 import '../auth/register_staff.dart';
 
 class AdminDashboardPage extends StatefulWidget {
@@ -64,6 +66,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 selectedIcon: Icon(Icons.assessment),
                 label: Text('Reports'),
               ),
+                  // Products management removed — product prices are fixed app-wide
             ],
           ),
           const VerticalDivider(width: 1),
@@ -87,6 +90,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         return _driversPage();
       case 4:
         return _reportsPage();
+      case 5:
+        return _productsPage();
       default:
         return const Center(child: Text('Unknown page'));
     }
@@ -500,6 +505,52 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       ),
     );
   }
+
+  // ----- Products management removed -----
+  // Product management UI has been removed. Product prices are fixed app-wide
+  // and can be changed in `lib/config/product_prices.dart`.
+  Widget _productsPage() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Product pricing (fixed)', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.water_drop),
+              title: const Text('Gallon (5L)'),
+              subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Refill only: ₱${ProductPrices.gallonPricing()['refill_only']!.toStringAsFixed(2)}'),
+                Text('With new container: ₱${ProductPrices.gallonPricing()['with_container']!.toStringAsFixed(2)}'),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.local_drink),
+              title: const Text('Bottled Water'),
+              subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                for (final e in ProductPrices.allBottledPrices().entries)
+                  Text('${e.key.toUpperCase()} : ₱${e.value.toStringAsFixed(2)}'),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text('Product management (create/update/delete) has been removed and prices are fixed in the app config.'),
+          const SizedBox(height: 8),
+          const Text('To change pricing, update `lib/config/product_prices.dart` and redeploy the app.'),
+        ],
+      ),
+    );
+  }
+
+
+
+  // Product management helper dialogs removed — product management is disabled
+  // and product prices are fixed in `lib/config/product_prices.dart`.
 
   Widget _statCard(String label, String value, Color color) {
     return Expanded(

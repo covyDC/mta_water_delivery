@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+// Helper used by various widgets in this file to serialize small option maps
+String _formatOrderOptions(Map<String, dynamic> opts) {
+  if (opts.isEmpty) return '';
+  if (opts.containsKey('size')) return opts['size'].toString();
+  final parts = <String>[];
+  if (opts['refill'] != null) parts.add(opts['refill'].toString());
+  if (opts['container'] != null) parts.add(opts['container'].toString());
+  return parts.join(' • ');
+}
+
 /// Customer order history with filters and search
 class OrderHistoryScreen extends StatefulWidget {
   final List<OrderHistory> orders;
@@ -239,6 +249,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     );
   }
 
+  // no-op - formatting is handled by top-level _formatOrderOptions
+
   Widget _buildFilterChip({
     required String label,
     required String value,
@@ -346,7 +358,10 @@ class OrderHistoryCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      order.productType,
+                      order.productType +
+                            (order.options.isNotEmpty
+                              ? ' • ${_formatOrderOptions(order.options)}'
+                              : ''),
                       style: const TextStyle(fontSize: 14),
                     ),
                   ),
@@ -439,6 +454,7 @@ class OrderHistoryCard extends StatelessWidget {
 class OrderHistory {
   final String orderId;
   final String productType;
+  final Map<String, dynamic> options; // may include size, refill, container etc.
   final int quantity;
   final double totalAmount;
   final String address;
@@ -459,6 +475,7 @@ class OrderHistory {
     this.estimatedDelivery,
     this.driverId,
     this.notes,
+    this.options = const {},
   });
 
   factory OrderHistory.fromMap(Map<String, dynamic> map) {
@@ -477,6 +494,7 @@ class OrderHistory {
           : null,
       driverId: map['driverId'],
       notes: map['notes'],
+      options: Map<String, dynamic>.from(map['options'] ?? {}),
     );
   }
 }

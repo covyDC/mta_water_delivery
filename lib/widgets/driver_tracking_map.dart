@@ -67,6 +67,7 @@ class _DriverTrackingMapState extends State<DriverTrackingMap> {
   double _getMarkerColor(String status) {
     switch (status.toLowerCase()) {
       case 'online':
+      case 'active':
         return BitmapDescriptor.hueGreen;
       case 'on_delivery':
         return BitmapDescriptor.hueBlue;

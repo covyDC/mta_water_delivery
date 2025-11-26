@@ -8,8 +8,8 @@
 - [x] Firebase Auth enabled
 - [x] Firebase Storage enabled
 - [x] Firebase options configured in `firebase_options.dart`
-- [ ] **TODO**: Update Firestore Security Rules (see `FIREBASE_RULES.txt`)
-- [ ] **TODO**: Update Storage Security Rules (see `FIREBASE_RULES.txt`)
+- [x] Update Firestore Security Rules (see `FIREBASE_RULES.txt`) — products collection set to read-only; other rules reviewed.
+- [x] Update Storage Security Rules (see `FIREBASE_RULES.txt`) — storage rules reviewed/updated where applicable.
 
 ### Code Quality
 - [x] `flutter analyze` - **0 issues found** ✅
@@ -212,6 +212,7 @@ After testing, you should be able to check off:
 
 3. **Testing Credentials**:
    - Admin: username: `admin`, password: `12345678`
+   - Note: Product management (create/update/delete) has been removed. Product prices are fixed in `lib/config/product_prices.dart`. Update that file to change pricing.
    - Can create test users with any email
 
 4. **Firestore Structure**: All collections are created automatically when data is written (no need to create manually).

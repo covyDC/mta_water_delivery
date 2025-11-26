@@ -83,6 +83,10 @@ flutter run -d edge
 1. On login page, click "Login as Admin"
    - Username: `admin`
    - Password: `12345678`
+
+Note: Product management (create/update/delete) has been removed. The app now uses
+fixed prices from `lib/config/product_prices.dart` so you do not need to create any
+special Firebase admin accounts for product pricing during testing.
 2. Click "Register Staff / Carrier"
 3. Fill form:
    - Full Name: `Alice Johnson`
@@ -112,6 +116,8 @@ flutter run -d edge
    - Available inventory
    - Required quantity
    - Expected remaining stock
+   - Customer contact details (name, email, phone, address) so staff can contact the customer if needed
+   - Itemized order breakdown (if the order includes item line entries)
 5. Click "Confirm" if inventory is sufficient
 6. ✅ SnackBar shows "Order confirmed successfully!"
 7. ✅ In Firestore:
@@ -125,8 +131,13 @@ flutter run -d edge
    - Full Gallons
    - Empty Containers
    - Refill Returned
+   - SKUs for inventory tracking (visible in the Inventory tracker):
+     - Gallon — refill only
+     - Gallon — with new container
+     - Bottled sizes: 350ml, 500ml, 1L, 1.5L, 5L
 3. Click "Edit Inventory" to manually update stock
 4. ✅ Changes persist to Firestore
+5. ✅ Confirm that SKU counters update correctly (use quick actions or Update Inventory dialog to edit each SKU). For confirmed orders, the app will decrement the matching SKU when possible.
 
 #### Step 5: Assign to Driver
 1. Click "Assign" tab
@@ -160,7 +171,7 @@ flutter run -d edge
 1. Click "Assigned" tab
 2. Shows deliveries assigned to this driver
 3. Shows: Customer name, address, gallons, payment type
-4. Click delivery card to see full details
+4. Click delivery card to see full details. Assigned deliveries and the pre-confirm dialog now show expanded customer contact information (name, email, phone, address) and an itemized list of items in the order when available.
 
 #### Step 4: Start Delivery
 1. From assigned delivery, click popup menu
