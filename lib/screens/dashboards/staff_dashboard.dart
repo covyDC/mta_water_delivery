@@ -945,7 +945,7 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                         // Resolve the driver's display name (try staff then drivers collection)
                         String? assignedDriverName;
 
-                        String? _resolveName(Map<String, dynamic>? data) {
+                        String? resolveName(Map<String, dynamic>? data) {
                           if (data == null) return null;
                           final cand = (data['name'] ?? data['fullName'] ?? data['displayName'])?.toString();
                           if (cand != null && cand.trim().isNotEmpty) return cand.trim();
@@ -953,7 +953,7 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                           // Try split fields
                           final first = (data['firstName'] ?? data['first_name'] ?? data['givenName'])?.toString().trim() ?? '';
                           final last = (data['lastName'] ?? data['last_name'] ?? data['familyName'])?.toString().trim() ?? '';
-                          final combined = ('$first ${last}'.trim());
+                          final combined = ('$first $last'.trim());
                           if (combined.isNotEmpty) return combined;
 
                           return null;
@@ -961,8 +961,8 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                         try {
                           final staffSnap = await FirebaseFirestore.instance.collection('staff').doc(assignedDriverId).get();
                             if (staffSnap.exists) {
-                              final sd = staffSnap.data() as Map<String, dynamic>?;
-                              assignedDriverName = _resolveName(sd);
+                              final sd = staffSnap.data();
+                              assignedDriverName = resolveName(sd);
                             }
                         } catch (_) {}
 
@@ -970,8 +970,8 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                           try {
                             final driverSnap = await FirebaseFirestore.instance.collection('drivers').doc(assignedDriverId).get();
                             if (driverSnap.exists) {
-                              final dd = driverSnap.data() as Map<String, dynamic>?;
-                              assignedDriverName = _resolveName(dd);
+                              final dd = driverSnap.data();
+                              assignedDriverName = resolveName(dd);
                             }
                           } catch (_) {}
                         }
