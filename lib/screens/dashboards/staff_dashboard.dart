@@ -944,20 +944,34 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
 
                         // Resolve the driver's display name (try staff then drivers collection)
                         String? assignedDriverName;
+
+                        String? _resolveName(Map<String, dynamic>? data) {
+                          if (data == null) return null;
+                          final cand = (data['name'] ?? data['fullName'] ?? data['displayName'])?.toString();
+                          if (cand != null && cand.trim().isNotEmpty) return cand.trim();
+
+                          // Try split fields
+                          final first = (data['firstName'] ?? data['first_name'] ?? data['givenName'])?.toString().trim() ?? '';
+                          final last = (data['lastName'] ?? data['last_name'] ?? data['familyName'])?.toString().trim() ?? '';
+                          final combined = ('$first ${last}'.trim());
+                          if (combined.isNotEmpty) return combined;
+
+                          return null;
+                        }
                         try {
                           final staffSnap = await FirebaseFirestore.instance.collection('staff').doc(assignedDriverId).get();
-                          if (staffSnap.exists) {
-                            final sd = staffSnap.data();
-                            assignedDriverName = (sd?['name'] ?? sd?['fullName'] ?? sd?['displayName'])?.toString();
-                          }
+                            if (staffSnap.exists) {
+                              final sd = staffSnap.data() as Map<String, dynamic>?;
+                              assignedDriverName = _resolveName(sd);
+                            }
                         } catch (_) {}
 
                         if (assignedDriverName == null) {
                           try {
                             final driverSnap = await FirebaseFirestore.instance.collection('drivers').doc(assignedDriverId).get();
                             if (driverSnap.exists) {
-                              final dd = driverSnap.data();
-                              assignedDriverName = (dd?['name'] ?? dd?['fullName'] ?? dd?['displayName'])?.toString();
+                              final dd = driverSnap.data() as Map<String, dynamic>?;
+                              assignedDriverName = _resolveName(dd);
                             }
                           } catch (_) {}
                         }
